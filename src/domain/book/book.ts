@@ -11,7 +11,7 @@ import {
 import { Effect, DateTime, Option } from 'effect'
 import { v4 } from 'uuid'
 
-enum BookStatus {
+export enum BookStatus {
   Draft,
   Published,
   Archived
