@@ -1,0 +1,1 @@
+ALTER TABLE "book" ALTER COLUMN "status" SET NOT NULL;

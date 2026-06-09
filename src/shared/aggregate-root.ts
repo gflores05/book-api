@@ -2,7 +2,7 @@ import type { Fact } from './fact'
 import { DateTime } from 'effect'
 
 export abstract class AggregateRoot<T, F extends Fact<T>> {
-  private uncommitedEvents: F[] = []
+  private _uncommitedEvents: F[] = []
 
   protected constructor(
     private _id: T,
@@ -27,9 +27,21 @@ export abstract class AggregateRoot<T, F extends Fact<T>> {
     return this._dateModified
   }
 
+  get uncommitedEvents() {
+    return [...this._uncommitedEvents]
+  }
+
+  incrementVersion() {
+    this._version += 1
+  }
+
+  clearUncommitedEvents() {
+    this._uncommitedEvents = []
+  }
+
   protected record(fact: F) {
     this.apply(fact)
-    this.uncommitedEvents.push(fact)
+    this._uncommitedEvents.push(fact)
   }
 
   protected abstract apply(fact: F): void

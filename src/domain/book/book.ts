@@ -14,7 +14,8 @@ import { v4 } from 'uuid'
 export enum BookStatus {
   Draft,
   Published,
-  Archived
+  Archived,
+  Unknown
 }
 
 type CreateBookParams = {
