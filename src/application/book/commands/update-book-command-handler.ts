@@ -12,6 +12,20 @@ export interface UpdateBookCommand {
   actorUserId: UserId
 }
 
+export function UpdateBookCommand(
+  id: BookId,
+  title: BookTitle,
+  description: Option.Option<NonEmptyString>,
+  actorUserId: UserId
+): UpdateBookCommand {
+  return {
+    id,
+    title,
+    description,
+    actorUserId
+  }
+}
+
 export interface UpdateBookResult {
   id: BookId
 }
@@ -27,7 +41,14 @@ export class DeniedUpdateError extends Data.TaggedError('DeniedUpdateError')<{
   actorUserId: UserId
 }> {}
 
-type UpdateBookError = BookNotExistUpdateError | DeniedUpdateError
+export class GeneralUpdateError extends Data.TaggedClass('GeneralUpdateError')<{
+  message: string
+}> {}
+
+export type UpdateBookError =
+  | BookNotExistUpdateError
+  | DeniedUpdateError
+  | GeneralUpdateError
 
 export function createUpdateBookCommandHandler(
   bookRepository: IBookRepository,
@@ -61,7 +82,9 @@ export function createUpdateBookCommandHandler(
 
       book.update(title, description)
 
-      yield* bookRepository.save(book)
+      yield* bookRepository
+        .save(book)
+        .pipe(Effect.mapError(e => new GeneralUpdateError(e)))
 
       return {
         id: book.id

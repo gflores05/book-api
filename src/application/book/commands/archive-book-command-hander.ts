@@ -9,6 +9,16 @@ export interface ArchiveBookCommand {
   actorUserId: UserId
 }
 
+export function ArchiveBookCommand(
+  id: BookId,
+  actorUserId: UserId
+): ArchiveBookCommand {
+  return {
+    id,
+    actorUserId
+  }
+}
+
 export interface ArchiveBookResult {
   id: BookId
 }
@@ -31,10 +41,15 @@ export class DeniedArchiveError extends Data.TaggedError('DeniedArchiveError')<{
   actorUserId: UserId
 }> {}
 
-type ArchiveBookError =
+export class GeneralArchiveError extends Data.TaggedClass(
+  'GeneralArchiveError'
+)<{ message: string }> {}
+
+export type ArchiveBookError =
   | BookNotExistArchiveError
   | DeniedArchiveError
   | InvalidBookStatusArchiveError
+  | GeneralArchiveError
 
 export function createArchiveBookCommandHandler(
   bookRepository: IBookRepository,
@@ -72,7 +87,9 @@ export function createArchiveBookCommandHandler(
           )
         )
 
-      yield* bookRepository.save(book)
+      yield* bookRepository
+        .save(book)
+        .pipe(Effect.mapError(e => new GeneralArchiveError(e)))
 
       return {
         id: book.id

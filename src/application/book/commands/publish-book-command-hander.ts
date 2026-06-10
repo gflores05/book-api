@@ -9,6 +9,16 @@ export interface PublishBookCommand {
   actorUserId: UserId
 }
 
+export function PublishBookCommand(
+  id: BookId,
+  actorUserId: UserId
+): PublishBookCommand {
+  return {
+    id,
+    actorUserId
+  }
+}
+
 export interface PublishBookResult {
   id: BookId
 }
@@ -31,10 +41,17 @@ export class DeniedPublishError extends Data.TaggedError('DeniedPublishError')<{
   actorUserId: UserId
 }> {}
 
-type PublishBookError =
+export class GeneralPublishError extends Data.TaggedError(
+  'GeneralPublishError'
+)<{
+  message: string
+}> {}
+
+export type PublishBookError =
   | BookNotExistPublishError
   | DeniedPublishError
   | InvalidBookStatusPublishError
+  | GeneralPublishError
 
 export function createPublishBookCommandHandler(
   bookRepository: IBookRepository,
@@ -72,7 +89,9 @@ export function createPublishBookCommandHandler(
           )
         )
 
-      yield* bookRepository.save(book)
+      yield* bookRepository
+        .save(book)
+        .pipe(Effect.mapError(e => new GeneralPublishError(e)))
 
       return {
         id: book.id

@@ -1,4 +1,4 @@
-import type { Book, BookId, IBookRepository } from '@domain/book'
+import { Book, BookId, DatabaseError, type IBookRepository } from '@domain/book'
 import type { Database } from '@infrastructure/config'
 import { BookMapper } from '@infrastructure/mappers'
 import {
@@ -33,17 +33,17 @@ export function createBookRepository(
     )
   }
 
-  function save(book: Book): Effect.Effect<void> {
+  function save(book: Book): Effect.Effect<void, DatabaseError> {
     return Effect.gen(function* () {
+      book.incrementVersion()
       const dbBook = BookMapper.mapDomainToDb(book)
-      if (book.version === 0) {
-        book.incrementVersion()
 
-        yield* Effect.promise(() =>
-          db.insert(booksTable).values(dbBook).returning()
-        )
+      if (book.version === 1) {
+        yield* Effect.tryPromise({
+          try: () => db.insert(booksTable).values(dbBook),
+          catch: err => new DatabaseError({ message: (err as any).message })
+        })
       } else {
-        book.incrementVersion()
         yield* Effect.promise(() =>
           db.update(booksTable).set(dbBook).where(eq(booksTable.id, dbBook.id))
         )

@@ -21,9 +21,9 @@ export function createDatabasePool(
     database: dbName,
     user: dbUser,
     password: dbPassword,
-    max: poolMax, // 20
-    idleTimeoutMillis: poolIdleTimeoutMillis, // 30000
-    connectionTimeoutMillis: dbConnectionTimeoutMillis // 2000
+    max: poolMax,
+    idleTimeoutMillis: poolIdleTimeoutMillis,
+    connectionTimeoutMillis: dbConnectionTimeoutMillis
   })
 
   pool.on('error', err => {

@@ -15,11 +15,25 @@ export interface CreateBookCommand {
   authorUserId: UserId
 }
 
+export function CreateBookCommand(
+  title: BookTitle,
+  description: Option.Option<NonEmptyString>,
+  authorUserId: UserId
+): CreateBookCommand {
+  return {
+    title,
+    description,
+    authorUserId
+  }
+}
+
 export interface CreateBookResult {
   id: BookId
 }
 
-export class CreateBookError extends Data.TaggedError('CreateBookError')<{}> {}
+export class CreateBookError extends Data.TaggedError('CreateBookError')<{
+  message: string
+}> {}
 
 export function createCreateBookCommandHandler(
   bookRepository: IBookRepository
@@ -40,7 +54,9 @@ export function createCreateBookCommandHandler(
         authorUserId
       })
 
-      yield* bookRepository.save(book)
+      yield* bookRepository
+        .save(book)
+        .pipe(Effect.mapError(e => new CreateBookError(e)))
 
       return {
         id: book.id

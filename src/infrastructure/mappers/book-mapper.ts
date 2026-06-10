@@ -1,6 +1,26 @@
+import {
+  ArchiveBookCommand,
+  CreateBookCommand,
+  PublishBookCommand,
+  UpdateBookCommand,
+  type ArchiveBookResult,
+  type CreateBookResult,
+  type PublishBookResult,
+  type UpdateBookResult
+} from '@application/book'
 import { Book, BookId, BookStatus, BookTitle } from '@domain/book'
 import { UserId } from '@domain/external'
 import { NonEmptyString } from '@domain/shared'
+import type {
+  ArchiveBookRequestType,
+  ArchiveBookResponseType,
+  CreateBookRequestType,
+  CreateBookResponseType,
+  PublishBookRequestType,
+  PublishBookResponseType,
+  UpdateBookRequestType,
+  UpdateBookResponseType
+} from '@infrastructure/http'
 import type { DbBook } from '@infrastructure/models'
 import { DateTime, Option, Match } from 'effect'
 
@@ -38,4 +58,73 @@ export const BookMapper = {
     ),
     authorUserId: book.authorUserId
   })
+}
+
+export const BookDtoMapper = {
+  mapCreateDtoToCommand(createBookDto: CreateBookRequestType) {
+    return CreateBookCommand(
+      BookTitle(createBookDto.title),
+      Option.fromNullable(createBookDto.description).pipe(
+        Option.map(d => NonEmptyString(d))
+      ),
+      UserId(createBookDto.authorUserId)
+    )
+  },
+
+  mapCreateCommandResultToDto(
+    createBookCommandResult: CreateBookResult
+  ): CreateBookResponseType {
+    return {
+      id: createBookCommandResult.id
+    }
+  },
+
+  mapUpdateDtoToCommand(updateBookDto: UpdateBookRequestType) {
+    return UpdateBookCommand(
+      BookId(updateBookDto.id),
+      BookTitle(updateBookDto.title),
+      Option.fromNullable(updateBookDto.description).pipe(
+        Option.map(d => NonEmptyString(d))
+      ),
+      UserId(updateBookDto.actorUserId)
+    )
+  },
+
+  mapUpdateCommandResultToDto(
+    updateBookCommandResult: UpdateBookResult
+  ): UpdateBookResponseType {
+    return {
+      id: updateBookCommandResult.id
+    }
+  },
+
+  mapPublishDtoToCommand(pubishBookDto: PublishBookRequestType) {
+    return PublishBookCommand(
+      BookId(pubishBookDto.id),
+      UserId(pubishBookDto.actorUserId)
+    )
+  },
+
+  mapPublishCommandResultToDto(
+    publishBookCommandResult: PublishBookResult
+  ): PublishBookResponseType {
+    return {
+      id: publishBookCommandResult.id
+    }
+  },
+
+  mapArchiveDtoToCommand(pubishBookDto: ArchiveBookRequestType) {
+    return ArchiveBookCommand(
+      BookId(pubishBookDto.id),
+      UserId(pubishBookDto.actorUserId)
+    )
+  },
+
+  mapArchiveCommandResultToDto(
+    publishBookCommandResult: ArchiveBookResult
+  ): ArchiveBookResponseType {
+    return {
+      id: publishBookCommandResult.id
+    }
+  }
 }

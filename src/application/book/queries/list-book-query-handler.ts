@@ -6,7 +6,7 @@ import type {
   BookProjection,
   IListBooksLookup,
   ListBooksParams
-} from '../lookup/list-books-lookup'
+} from '../lookups/list-books-lookup'
 
 export interface ListBooksQuery {
   pageOptions: PageOptions<BookProjection, ListBooksParams>
@@ -21,7 +21,7 @@ export class DeniedListError extends Data.TaggedError('DeniedListError')<{
 
 type ListBooksError = DeniedListError
 
-export function createGetBookQueryHandler(
+export function createListBookQueryHandler(
   listBooksLookup: IListBooksLookup,
   bookPolicies: IBookPolicies
 ): IQueryHandler<ListBooksQuery, ListBooksResult, ListBooksError> {
