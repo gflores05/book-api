@@ -5,15 +5,23 @@ import type {
 } from '@application/book'
 import type { ICommandHandler } from '@application/util'
 import {
-  type ArchiveBookRequestType,
   ArchiveBookRequest,
   ArchiveBookResponse,
   type ArchiveBookResponseType
 } from '@infrastructure/http'
 import { BookDtoMapper } from '@infrastructure/mappers'
-import { buildOptions } from '@infrastructure/util'
-import { Effect } from 'effect'
-import type { FastifyRequest } from 'fastify'
+import {
+  buildSchema,
+  Forbidden,
+  InternalServerError,
+  NotFound,
+  PreconditionFailed,
+  runHttpPromise,
+  type FastifyReplyTypeBox,
+  type FastifyRequestTypeBox,
+  type HttpErrorResponse
+} from '@infrastructure/util'
+import { Effect, Match } from 'effect'
 
 export function createArchiveBookRoute(
   archiveBookCommandHandler: ICommandHandler<
@@ -22,20 +30,34 @@ export function createArchiveBookRoute(
     ArchiveBookError
   >
 ) {
+  const schema = buildSchema(ArchiveBookRequest, ArchiveBookResponse)
+
   const handler = async function (
-    request: FastifyRequest<{ Body: ArchiveBookRequestType }>
+    request: FastifyRequestTypeBox<typeof schema>,
+    reply: FastifyReplyTypeBox<typeof schema>
   ): Promise<ArchiveBookResponseType> {
     const command = BookDtoMapper.mapArchiveDtoToCommand(request.body)
 
-    return archiveBookCommandHandler
-      .handle(command)
-      .pipe(Effect.runPromise)
-      .then(BookDtoMapper.mapArchiveCommandResultToDto)
+    return archiveBookCommandHandler.handle(command).pipe(
+      Effect.mapError(
+        Match.type<ArchiveBookError>().pipe(
+          Match.withReturnType<HttpErrorResponse>(),
+          Match.tag('BookNotExistArchiveError', e => NotFound('book', e.id)),
+          Match.tag('InvalidBookStatusArchiveError', e =>
+            PreconditionFailed('Book already archive')
+          ),
+          Match.tag('DeniedArchiveError', e => Forbidden(e.actorUserId)),
+          Match.tag('GeneralArchiveError', e => InternalServerError(e.message)),
+          Match.exhaustive
+        )
+      ),
+      Effect.map(BookDtoMapper.mapArchiveCommandResultToDto),
+      runHttpPromise({
+        onSuccess: result => reply.send(result),
+        onError: e => reply.status(e.status).send(e.error)
+      })
+    )
   }
 
-  const opts = buildOptions(ArchiveBookRequest, {
-    200: ArchiveBookResponse
-  })
-
-  return { handler, opts }
+  return { handler, schema }
 }

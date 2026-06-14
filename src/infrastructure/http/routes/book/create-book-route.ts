@@ -4,16 +4,17 @@ import type {
   CreateBookError
 } from '@application/book'
 import type { ICommandHandler } from '@application/util'
-import {
-  type CreateBookRequestType,
-  type CreateBookResponseType,
-  CreateBookRequest,
-  CreateBookResponse
-} from '@infrastructure/http'
+import { CreateBookRequest, CreateBookResponse } from '@infrastructure/http'
 import { BookDtoMapper } from '@infrastructure/mappers'
-import { buildOptions } from '@infrastructure/util'
-import { Effect } from 'effect'
-import type { FastifyRequest } from 'fastify'
+import {
+  buildSchema,
+  InternalServerError,
+  runHttpPromise,
+  type FastifyReplyTypeBox,
+  type FastifyRequestTypeBox,
+  type HttpErrorResponse
+} from '@infrastructure/util'
+import { Effect, Match } from 'effect'
 
 export function createCreateBookRoute(
   createBookCommandHandler: ICommandHandler<
@@ -22,20 +23,32 @@ export function createCreateBookRoute(
     CreateBookError
   >
 ) {
+  const schema = buildSchema(CreateBookRequest, CreateBookResponse)
+
   const handler = async function (
-    request: FastifyRequest<{ Body: CreateBookRequestType }>
-  ): Promise<CreateBookResponseType> {
+    request: FastifyRequestTypeBox<typeof schema>,
+    reply: FastifyReplyTypeBox<typeof schema>
+  ) {
+    console.log()
     const command = BookDtoMapper.mapCreateDtoToCommand(request.body)
 
-    return createBookCommandHandler
-      .handle(command)
-      .pipe(Effect.runPromise)
-      .then(BookDtoMapper.mapCreateCommandResultToDto)
+    return createBookCommandHandler.handle(command).pipe(
+      Effect.mapError(
+        Match.type<CreateBookError>().pipe(
+          Match.withReturnType<HttpErrorResponse>(),
+          Match.tag('CreateBookError', () =>
+            InternalServerError('Error creating book')
+          ),
+          Match.exhaustive
+        )
+      ),
+      Effect.map(BookDtoMapper.mapCreateCommandResultToDto),
+      runHttpPromise({
+        onSuccess: result => reply.send(result),
+        onError: e => reply.status(e.status).send(e.error)
+      })
+    )
   }
 
-  const opts = buildOptions(CreateBookRequest, {
-    200: CreateBookResponse
-  })
-
-  return { handler, opts }
+  return { handler, schema }
 }

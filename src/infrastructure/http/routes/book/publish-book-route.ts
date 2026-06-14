@@ -5,15 +5,23 @@ import type {
 } from '@application/book'
 import type { ICommandHandler } from '@application/util'
 import {
-  type PublishBookRequestType,
   PublishBookRequest,
   PublishBookResponse,
   type PublishBookResponseType
 } from '@infrastructure/http'
 import { BookDtoMapper } from '@infrastructure/mappers'
-import { buildOptions } from '@infrastructure/util'
-import { Effect } from 'effect'
-import type { FastifyRequest } from 'fastify'
+import {
+  buildSchema,
+  Forbidden,
+  InternalServerError,
+  NotFound,
+  PreconditionFailed,
+  runHttpPromise,
+  type FastifyReplyTypeBox,
+  type FastifyRequestTypeBox,
+  type HttpErrorResponse
+} from '@infrastructure/util'
+import { Effect, Match } from 'effect'
 
 export function createPublishBookRoute(
   publishBookCommandHandler: ICommandHandler<
@@ -22,20 +30,34 @@ export function createPublishBookRoute(
     PublishBookError
   >
 ) {
+  const schema = buildSchema(PublishBookRequest, PublishBookResponse)
+
   const handler = async function (
-    request: FastifyRequest<{ Body: PublishBookRequestType }>
+    request: FastifyRequestTypeBox<typeof schema>,
+    reply: FastifyReplyTypeBox<typeof schema>
   ): Promise<PublishBookResponseType> {
     const command = BookDtoMapper.mapPublishDtoToCommand(request.body)
 
-    return publishBookCommandHandler
-      .handle(command)
-      .pipe(Effect.runPromise)
-      .then(BookDtoMapper.mapPublishCommandResultToDto)
+    return publishBookCommandHandler.handle(command).pipe(
+      Effect.mapError(
+        Match.type<PublishBookError>().pipe(
+          Match.withReturnType<HttpErrorResponse>(),
+          Match.tag('BookNotExistPublishError', e => NotFound('book', e.id)),
+          Match.tag('InvalidBookStatusPublishError', e =>
+            PreconditionFailed('Book already archive')
+          ),
+          Match.tag('DeniedPublishError', e => Forbidden(e.actorUserId)),
+          Match.tag('GeneralPublishError', e => InternalServerError(e.message)),
+          Match.exhaustive
+        )
+      ),
+      Effect.map(BookDtoMapper.mapPublishCommandResultToDto),
+      runHttpPromise({
+        onSuccess: result => reply.send(result),
+        onError: e => reply.status(e.status).send(e.error)
+      })
+    )
   }
 
-  const opts = buildOptions(PublishBookRequest, {
-    200: PublishBookResponse
-  })
-
-  return { handler, opts }
+  return { handler, schema }
 }

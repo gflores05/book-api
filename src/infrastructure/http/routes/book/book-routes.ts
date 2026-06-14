@@ -23,25 +23,25 @@ export function createBookRoutes(
         (app, _) => {
           app.post<{ Body: CreateBookRequestType }>(
             '/book',
-            createBookRoute.opts,
+            { schema: createBookRoute.schema },
             createBookRoute.handler
           )
 
           app.patch<{ Body: UpdateBookRequestType }>(
             '/book',
-            updateBookRoute.opts,
+            { schema: updateBookRoute.schema },
             updateBookRoute.handler
           )
 
           app.patch<{ Body: PublishBookRequestType }>(
             '/book/publish',
-            publishBookRoute.opts,
+            { schema: publishBookRoute.schema },
             publishBookRoute.handler
           )
 
           app.patch<{ Body: ArchiveBookRequestType }>(
             '/book/archive',
-            archiveBookRoute.opts,
+            { schema: archiveBookRoute.schema },
             archiveBookRoute.handler
           )
         },

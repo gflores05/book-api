@@ -5,15 +5,22 @@ import type {
 } from '@application/book'
 import type { ICommandHandler } from '@application/util'
 import {
-  type UpdateBookRequestType,
   UpdateBookRequest,
   UpdateBookResponse,
   type UpdateBookResponseType
 } from '@infrastructure/http'
 import { BookDtoMapper } from '@infrastructure/mappers'
-import { buildOptions } from '@infrastructure/util'
-import { Effect } from 'effect'
-import type { FastifyRequest } from 'fastify'
+import {
+  buildSchema,
+  Forbidden,
+  InternalServerError,
+  NotFound,
+  runHttpPromise,
+  type FastifyReplyTypeBox,
+  type FastifyRequestTypeBox,
+  type HttpErrorResponse
+} from '@infrastructure/util'
+import { Effect, Match } from 'effect'
 
 export function createUpdateBookRoute(
   updateBookCommandHandler: ICommandHandler<
@@ -22,20 +29,31 @@ export function createUpdateBookRoute(
     UpdateBookError
   >
 ) {
+  const schema = buildSchema(UpdateBookRequest, UpdateBookResponse)
+
   const handler = async function (
-    request: FastifyRequest<{ Body: UpdateBookRequestType }>
+    request: FastifyRequestTypeBox<typeof schema>,
+    reply: FastifyReplyTypeBox<typeof schema>
   ): Promise<UpdateBookResponseType> {
     const command = BookDtoMapper.mapUpdateDtoToCommand(request.body)
 
-    return updateBookCommandHandler
-      .handle(command)
-      .pipe(Effect.runPromise)
-      .then(BookDtoMapper.mapUpdateCommandResultToDto)
+    return updateBookCommandHandler.handle(command).pipe(
+      Effect.mapError(
+        Match.type<UpdateBookError>().pipe(
+          Match.withReturnType<HttpErrorResponse>(),
+          Match.tag('BookNotExistUpdateError', e => NotFound('book', e.id)),
+          Match.tag('DeniedUpdateError', e => Forbidden(e.actorUserId)),
+          Match.tag('GeneralUpdateError', e => InternalServerError(e.message)),
+          Match.exhaustive
+        )
+      ),
+      Effect.map(BookDtoMapper.mapUpdateCommandResultToDto),
+      runHttpPromise({
+        onSuccess: result => reply.send(result),
+        onError: e => reply.status(e.status).send(e.error)
+      })
+    )
   }
 
-  const opts = buildOptions(UpdateBookRequest, {
-    200: UpdateBookResponse
-  })
-
-  return { handler, opts }
+  return { handler, schema }
 }
