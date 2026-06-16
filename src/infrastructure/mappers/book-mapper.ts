@@ -4,7 +4,9 @@ import {
   PublishBookCommand,
   UpdateBookCommand,
   type ArchiveBookResult,
+  type BookProjection,
   type CreateBookResult,
+  type GetBookResult,
   type PublishBookResult,
   type UpdateBookResult
 } from '@application/book'
@@ -16,6 +18,8 @@ import type {
   ArchiveBookResponseType,
   CreateBookRequestType,
   CreateBookResponseType,
+  GetBookRequestType,
+  GetBookResponseType,
   PublishBookRequestType,
   PublishBookResponseType,
   UpdateBookRequestType,
@@ -43,6 +47,22 @@ export const BookMapper = {
       ),
       authorUserId: UserId(dbBook.authorUserId)
     }),
+  mapDbToProjection: (dbBook: DbBook): BookProjection => ({
+    id: BookId(dbBook.id),
+    dateCreated: DateTime.unsafeMake(dbBook.dateCreated),
+    dateModified: DateTime.unsafeMake(dbBook.dateModified),
+    title: BookTitle(dbBook.title),
+    description: Option.fromNullable(dbBook.description).pipe(
+      Option.map(val => NonEmptyString(val))
+    ),
+    status: Match.value(dbBook.status).pipe(
+      Match.when('DRAFT', _ => BookStatus.Draft),
+      Match.when('PUBLISHED', _ => BookStatus.Published),
+      Match.when('ARCHIVED', _ => BookStatus.Archived),
+      Match.orElse(() => BookStatus.Unknown)
+    ),
+    authorUserId: UserId(dbBook.authorUserId)
+  }),
   mapDomainToDb: (book: Book): DbBook => ({
     id: book.id,
     version: book.version,
@@ -113,18 +133,45 @@ export const BookDtoMapper = {
     }
   },
 
-  mapArchiveDtoToCommand(pubishBookDto: ArchiveBookRequestType) {
+  mapArchiveDtoToCommand(archiveBookDto: ArchiveBookRequestType) {
     return ArchiveBookCommand(
-      BookId(pubishBookDto.id),
-      UserId(pubishBookDto.actorUserId)
+      BookId(archiveBookDto.id),
+      UserId(archiveBookDto.actorUserId)
     )
   },
 
   mapArchiveCommandResultToDto(
-    publishBookCommandResult: ArchiveBookResult
+    archiveBookCommandResult: ArchiveBookResult
   ): ArchiveBookResponseType {
     return {
-      id: publishBookCommandResult.id
+      id: archiveBookCommandResult.id
+    }
+  },
+
+  mapGetDtoToQuery(getBookDto: GetBookRequestType) {
+    return ArchiveBookCommand(
+      BookId(getBookDto.id),
+      UserId(getBookDto.actorUserId)
+    )
+  },
+
+  mapGetQueryResultToDto(
+    getBookQueryResult: GetBookResult
+  ): GetBookResponseType {
+    return {
+      id: getBookQueryResult.id,
+      dateCreated: getBookQueryResult.dateCreated.pipe(DateTime.formatUtc),
+      dateModified: getBookQueryResult.dateModified.pipe(DateTime.formatUtc),
+      title: getBookQueryResult.title,
+      description:
+        getBookQueryResult.description.pipe(Option.getOrUndefined) || '',
+      status: Match.value(getBookQueryResult.status).pipe(
+        Match.when(BookStatus.Draft, _ => 'Draft'),
+        Match.when(BookStatus.Published, _ => 'Published'),
+        Match.when(BookStatus.Archived, _ => 'Archived'),
+        Match.orElse(() => 'Unknown')
+      ),
+      authorUserId: getBookQueryResult.authorUserId
     }
   }
 }

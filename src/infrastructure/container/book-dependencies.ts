@@ -11,6 +11,7 @@ import {
   createArchiveBookRoute,
   createBookRoutes,
   createCreateBookRoute,
+  createGetBookRoute,
   createPublishBookRoute,
   createUpdateBookRoute
 } from '@infrastructure/http'
@@ -48,11 +49,11 @@ export function registerBook(container: AwilixContainer) {
     bookRepository: asFunction(createBookRepository).scoped(),
 
     // routes
-
     registerBookRoutes: asFunction(createBookRoutes).scoped(),
     createBookRoute: asFunction(createCreateBookRoute).scoped(),
     updateBookRoute: asFunction(createUpdateBookRoute).scoped(),
     publishBookRoute: asFunction(createPublishBookRoute).scoped(),
-    archiveBookRoute: asFunction(createArchiveBookRoute).scoped()
+    archiveBookRoute: asFunction(createArchiveBookRoute).scoped(),
+    getBookRoute: asFunction(createGetBookRoute).scoped()
   })
 }

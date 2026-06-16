@@ -36,7 +36,14 @@ export class DeniedGetError extends Data.TaggedError('DeniedGetError')<{
   actorUserId: UserId
 }> {}
 
-type GetBookError = BookNotExistGetError | DeniedGetError
+export class GeneralGetError extends Data.TaggedError('GeneralGetError')<{
+  message: string
+}> {}
+
+export type GetBookError =
+  | BookNotExistGetError
+  | DeniedGetError
+  | GeneralGetError
 
 export function createGetBookQueryHandler(
   bookRepository: IBookRepository,
@@ -52,6 +59,9 @@ export function createGetBookQueryHandler(
   }: GetBookQuery): Effect.Effect<GetBookResult, GetBookError> {
     return Effect.gen(function* () {
       const book = yield* bookRepository.get(id).pipe(
+        Effect.mapError(
+          _ => new GeneralGetError({ message: 'Error getting book' })
+        ),
         Effect.flatMap(ob =>
           ob.pipe(
             Option.match({

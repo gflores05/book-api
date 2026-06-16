@@ -1,8 +1,8 @@
 import type { PageOptions, Page } from '@application/util'
-import type { BookStatus, BookId, BookTitle } from '@domain/book'
+import type { BookStatus, BookId, BookTitle, DatabaseError } from '@domain/book'
 import type { UserId } from '@domain/external'
+import type { NonEmptyString } from '@domain/shared'
 import type { DateTime, Effect, Option } from 'effect'
-import type { NonEmptyString } from 'effect/Schema'
 
 export interface BookProjection {
   id: BookId
@@ -21,5 +21,5 @@ export interface ListBooksParams {
 export interface IListBooksLookup {
   list(
     opts: PageOptions<BookProjection, ListBooksParams>
-  ): Effect.Effect<Page<BookProjection>>
+  ): Effect.Effect<Page<BookProjection>, DatabaseError>
 }

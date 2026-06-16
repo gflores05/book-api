@@ -12,6 +12,7 @@ import {
 import { BookDtoMapper } from '@infrastructure/mappers'
 import {
   buildSchema,
+  EmptyProps,
   Forbidden,
   InternalServerError,
   NotFound,
@@ -30,7 +31,11 @@ export function createPublishBookRoute(
     PublishBookError
   >
 ) {
-  const schema = buildSchema(PublishBookRequest, PublishBookResponse)
+  const schema = buildSchema(
+    PublishBookRequest,
+    PublishBookResponse,
+    EmptyProps
+  )
 
   const handler = async function (
     request: FastifyRequestTypeBox<typeof schema>,

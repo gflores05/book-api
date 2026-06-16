@@ -12,6 +12,7 @@ import {
 import { BookDtoMapper } from '@infrastructure/mappers'
 import {
   buildSchema,
+  EmptyProps,
   Forbidden,
   InternalServerError,
   NotFound,
@@ -30,7 +31,11 @@ export function createArchiveBookRoute(
     ArchiveBookError
   >
 ) {
-  const schema = buildSchema(ArchiveBookRequest, ArchiveBookResponse)
+  const schema = buildSchema(
+    ArchiveBookRequest,
+    ArchiveBookResponse,
+    EmptyProps
+  )
 
   const handler = async function (
     request: FastifyRequestTypeBox<typeof schema>,

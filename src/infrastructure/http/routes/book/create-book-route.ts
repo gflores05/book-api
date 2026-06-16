@@ -8,6 +8,7 @@ import { CreateBookRequest, CreateBookResponse } from '@infrastructure/http'
 import { BookDtoMapper } from '@infrastructure/mappers'
 import {
   buildSchema,
+  EmptyProps,
   InternalServerError,
   runHttpPromise,
   type FastifyReplyTypeBox,
@@ -23,7 +24,7 @@ export function createCreateBookRoute(
     CreateBookError
   >
 ) {
-  const schema = buildSchema(CreateBookRequest, CreateBookResponse)
+  const schema = buildSchema(CreateBookRequest, CreateBookResponse, EmptyProps)
 
   const handler = async function (
     request: FastifyRequestTypeBox<typeof schema>,

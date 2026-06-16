@@ -7,6 +7,6 @@ export class DatabaseError extends Data.TaggedError('DatabaseError')<{
 }> {}
 
 export interface IBookRepository {
-  get(id: BookId): Effect.Effect<Option.Option<Book>>
+  get(id: BookId): Effect.Effect<Option.Option<Book>, DatabaseError>
   save(book: Book): Effect.Effect<void, DatabaseError>
 }

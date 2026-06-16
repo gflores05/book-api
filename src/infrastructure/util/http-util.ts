@@ -1,5 +1,5 @@
 import { type TObject, type TProperties, type Static } from 'typebox'
-import { type RouteHandlerMethod, type RouteShorthandOptions } from 'fastify'
+import { type RouteHandlerMethod } from 'fastify'
 import type { TypeBoxTypeProvider } from '@fastify/type-provider-typebox'
 import { Type } from '@fastify/type-provider-typebox'
 import type {
@@ -105,9 +105,30 @@ export type HttpError = BadRequest | Forbidden | NotFound | InternalServerError
 
 export type ResponseStatusSquema = Record<number, TObject>
 
-export function buildSchema<SB extends TProperties, SR extends TProperties>(
-  body: TObject<SB>,
-  ok: TObject<SR>
+export const EmptyProps = Type.Object({})
+
+export function buildSchema<
+  SB extends TProperties,
+  SR extends TProperties,
+  SP extends TProperties
+>(body: TObject<SB>, ok: TObject<SR>, params: TObject<SP>) {
+  return {
+    response: {
+      200: ok,
+      400: BadRequestSchema,
+      403: ForbiddenSchema,
+      404: NotFoundSchema,
+      412: PreconditionFailedSchema,
+      500: InternalServerErrorSchema
+    },
+    body,
+    params
+  }
+}
+
+export function buildGetSchema<SR extends TProperties, SP extends TProperties>(
+  ok: TObject<SR>,
+  params: TObject<SP>
 ) {
   return {
     response: {
@@ -118,7 +139,7 @@ export function buildSchema<SB extends TProperties, SR extends TProperties>(
       412: PreconditionFailedSchema,
       500: InternalServerErrorSchema
     },
-    body
+    params
   }
 }
 

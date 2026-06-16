@@ -22,6 +22,7 @@
   "type": "module",
   "devDependencies": {
     "@effect/language-service": "^0.86.2",
+    "@types/lodash-es": "^4.17.12",
     "@types/node": "^25.9.1",
     "@types/pg": "^8.20.0",
     "drizzle-kit": "^0.31.10",
@@ -40,6 +41,7 @@
     "drizzle-orm": "^0.45.2",
     "effect": "^3.21.3",
     "fastify": "^5.8.5",
+    "lodash-es": "^4.18.1",
     "pg": "^8.21.0",
     "typebox": "^1.2.3",
     "uuid": "^14.0.0"

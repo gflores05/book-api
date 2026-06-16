@@ -15,11 +15,15 @@ export interface ListBooksQuery {
 
 export type ListBooksResult = Page<BookProjection>
 
+export class GeneralListError extends Data.TaggedError('GeneralListError')<{
+  message: string
+}> {}
+
 export class DeniedListError extends Data.TaggedError('DeniedListError')<{
   actorUserId: UserId
 }> {}
 
-type ListBooksError = DeniedListError
+type ListBooksError = DeniedListError | GeneralListError
 
 export function createListBookQueryHandler(
   listBooksLookup: IListBooksLookup,
@@ -38,7 +42,13 @@ export function createListBookQueryHandler(
         return yield* new DeniedListError({ actorUserId })
       }
 
-      return yield* listBooksLookup.list(pageOptions)
+      return yield* listBooksLookup
+        .list(pageOptions)
+        .pipe(
+          Effect.mapError(
+            _ => new GeneralListError({ message: 'Error reading the books' })
+          )
+        )
     })
   }
 }
