@@ -67,6 +67,9 @@ export function createPublishBookCommandHandler(
   }: PublishBookCommand): Effect.Effect<PublishBookResult, PublishBookError> {
     return Effect.gen(function* () {
       const book = yield* bookRepository.get(id).pipe(
+        Effect.mapError(
+          _ => new GeneralPublishError({ message: 'Error getting book' })
+        ),
         Effect.flatMap(ob =>
           ob.pipe(
             Option.match({

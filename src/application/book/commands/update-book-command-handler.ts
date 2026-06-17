@@ -66,6 +66,9 @@ export function createUpdateBookCommandHandler(
   }: UpdateBookCommand): Effect.Effect<UpdateBookResult, UpdateBookError> {
     return Effect.gen(function* () {
       const book = yield* bookRepository.get(id).pipe(
+        Effect.mapError(
+          _ => new GeneralUpdateError({ message: 'Error getting book' })
+        ),
         Effect.flatMap(ob =>
           ob.pipe(
             Option.match({

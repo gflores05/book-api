@@ -1,5 +1,5 @@
 import type { ICommandHandler } from '@application/util'
-import { BookStatus, type IBookRepository, BookId } from '@domain/book'
+import { BookStatus, type IBookRepository, BookId, DatabaseError } from '@domain/book'
 import type { UserId } from '@domain/external'
 import { Effect, Option, Data } from 'effect'
 import type { IBookPolicies } from '../policies/book-policies'
@@ -65,6 +65,9 @@ export function createArchiveBookCommandHandler(
   }: ArchiveBookCommand): Effect.Effect<ArchiveBookResult, ArchiveBookError> {
     return Effect.gen(function* () {
       const book = yield* bookRepository.get(id).pipe(
+        Effect.mapError(
+          _ => new GeneralArchiveError({ message: 'Error getting book' })
+        ),
         Effect.flatMap(ob =>
           ob.pipe(
             Option.match({
