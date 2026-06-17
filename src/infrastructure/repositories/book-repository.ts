@@ -21,11 +21,12 @@ export function createBookRepository(
     forUnitOfWork
   }
 
-  function get(id: BookId): Effect.Effect<Option.Option<Book>> {
+  function get(id: BookId): Effect.Effect<Option.Option<Book>, DatabaseError> {
     return pipe(
-      Effect.promise(() =>
-        db.select().from(booksTable).where(eq(booksTable.id, id))
-      ),
+      Effect.tryPromise({
+        try: () => db.select().from(booksTable).where(eq(booksTable.id, id)),
+        catch: err => new DatabaseError({ message: (err as any).message })
+      }),
       Effect.map(b =>
         b.length && b[0] ? BookMapper.mapDbToDomain(b[0]) : undefined
       ),

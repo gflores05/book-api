@@ -9,7 +9,7 @@ export type GetBookRequestType = Static<typeof GetBookRequest>
 
 export const GetBookResponse = Type.Object({
   id: Type.String({ format: 'uuid' }),
-  dateCreated: Type.String({ format: 'date-time' }),
+  dateCreated: Type.String({}),
   dateModified: Type.String({ format: 'date-time' }),
   title: Type.String(),
   description: Type.Optional(Type.String()),

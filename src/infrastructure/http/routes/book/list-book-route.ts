@@ -1,13 +1,13 @@
 import type {
-  GetBookResult,
-  GetBookError,
-  GetBookQuery
+  ListBooksError,
+  ListBooksQuery,
+  ListBooksResult
 } from '@application/book'
 import type { IQueryHandler } from '@application/util'
 import {
-  GetBookRequest,
-  GetBookResponse,
-  type GetBookResponseType
+  ListBookRequest,
+  ListBookResponse,
+  type ListBookResponseType
 } from '@infrastructure/http'
 import { BookDtoMapper } from '@infrastructure/mappers'
 import {
@@ -15,7 +15,6 @@ import {
   EmptyProps,
   Forbidden,
   InternalServerError,
-  NotFound,
   runHttpPromise,
   type FastifyReplyTypeBox,
   type FastifyRequestTypeBox,
@@ -23,28 +22,31 @@ import {
 } from '@infrastructure/util'
 import { Effect, Match } from 'effect'
 
-export function createGetBookRoute(
-  getBookQueryHandler: IQueryHandler<GetBookQuery, GetBookResult, GetBookError>
+export function createListBookRoute(
+  listBookQueryHandler: IQueryHandler<
+    ListBooksQuery,
+    ListBooksResult,
+    ListBooksError
+  >
 ) {
-  const schema = buildGetSchema(GetBookResponse, GetBookRequest, EmptyProps)
+  const schema = buildGetSchema(ListBookResponse, EmptyProps, ListBookRequest)
 
   const handler = async function (
     request: FastifyRequestTypeBox<typeof schema>,
     reply: FastifyReplyTypeBox<typeof schema>
-  ): Promise<GetBookResponseType> {
-    const query = BookDtoMapper.mapGetDtoToQuery(request.params)
+  ): Promise<ListBookResponseType> {
+    const query = BookDtoMapper.mapListDtoToQuery(request.query)
 
-    return getBookQueryHandler.handle(query).pipe(
+    return listBookQueryHandler.handle(query).pipe(
       Effect.mapError(
-        Match.type<GetBookError>().pipe(
+        Match.type<ListBooksError>().pipe(
           Match.withReturnType<HttpErrorResponse>(),
-          Match.tag('BookNotExistGetError', e => NotFound('book', e.id)),
-          Match.tag('DeniedGetError', e => Forbidden(e.actorUserId)),
-          Match.tag('GeneralGetError', e => InternalServerError(e.message)),
+          Match.tag('DeniedListError', e => Forbidden(e.actorUserId)),
+          Match.tag('GeneralListError', e => InternalServerError(e.message)),
           Match.exhaustive
         )
       ),
-      Effect.map(BookDtoMapper.mapGetQueryResultToDto),
+      Effect.map(BookDtoMapper.mapListQueryResultToDto),
       runHttpPromise({
         onSuccess: result => reply.send(result),
         onError: e => reply.status(e.status).send(e.error)

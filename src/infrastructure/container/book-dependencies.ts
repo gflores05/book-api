@@ -13,7 +13,8 @@ import {
   createCreateBookRoute,
   createGetBookRoute,
   createPublishBookRoute,
-  createUpdateBookRoute
+  createUpdateBookRoute,
+  createListBookRoute
 } from '@infrastructure/http'
 import { createListBooksLookup } from '@infrastructure/lookups'
 import { createBookRepository } from '@infrastructure/repositories'
@@ -54,6 +55,7 @@ export function registerBook(container: AwilixContainer) {
     updateBookRoute: asFunction(createUpdateBookRoute).scoped(),
     publishBookRoute: asFunction(createPublishBookRoute).scoped(),
     archiveBookRoute: asFunction(createArchiveBookRoute).scoped(),
-    getBookRoute: asFunction(createGetBookRoute).scoped()
+    getBookRoute: asFunction(createGetBookRoute).scoped(),
+    listBooksRoute: asFunction(createListBookRoute).scoped()
   })
 }

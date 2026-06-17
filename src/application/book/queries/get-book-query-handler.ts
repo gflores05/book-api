@@ -15,6 +15,10 @@ export interface GetBookQuery {
   actorUserId: UserId
 }
 
+export function GetBookQuery(id: BookId, actorUserId: UserId): GetBookQuery {
+  return { id, actorUserId }
+}
+
 export interface GetBookResult {
   id: BookId
   dateCreated: DateTime.DateTime

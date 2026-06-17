@@ -18,6 +18,10 @@ export interface ListBooksParams {
   authorUserId: UserId
 }
 
+export function ListBooksParams(authorUserId: UserId) {
+  return { authorUserId }
+}
+
 export interface IListBooksLookup {
   list(
     opts: PageOptions<BookProjection, ListBooksParams>

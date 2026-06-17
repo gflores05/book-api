@@ -8,9 +8,9 @@ import { DatabaseError } from '@domain/book'
 import type { Database } from '@infrastructure/config'
 import { BookMapper } from '@infrastructure/mappers'
 import { booksTable } from '@infrastructure/persistence'
-import { decodeBase64, encodeBase64 } from '@infrastructure/util'
-import { asc, desc, gt } from 'drizzle-orm'
-import { Effect } from 'effect'
+import { decodeBase64, encodeBase64, safeToString } from '@infrastructure/util'
+import { and, asc, desc, eq, gt } from 'drizzle-orm'
+import { Effect, Match } from 'effect'
 import { last } from 'lodash-es'
 
 export function createListBooksLookup(db: Database): IListBooksLookup {
@@ -26,6 +26,11 @@ export function createListBooksLookup(db: Database): IListBooksLookup {
       opts.orderDirection === 'desc' ? desc(orderByColumn) : asc(orderByColumn)
 
     return Effect.gen(function* () {
+      const authorUserIdCond = eq(
+        booksTable.authorUserId,
+        opts.params.authorUserId
+      )
+
       const [items, total] = yield* Effect.all([
         Effect.tryPromise({
           try: () =>
@@ -34,15 +39,31 @@ export function createListBooksLookup(db: Database): IListBooksLookup {
               .from(booksTable)
               .where(
                 opts.cursor
-                  ? gt(orderByColumn, decodeBase64(opts.cursor))
-                  : undefined
+                  ? and(
+                      authorUserIdCond,
+                      gt(
+                        orderByColumn,
+                        parseColumnValue(
+                          opts.orderBy,
+                          decodeBase64(opts.cursor)
+                        )
+                      )
+                    )
+                  : authorUserIdCond
               )
               .orderBy(orderBy)
               .limit(opts.size),
-          catch: err => new DatabaseError({ message: (err as any).message })
+          catch: err => {
+            console.error(err)
+            return new DatabaseError({ message: (err as any).message })
+          }
         }).pipe(Effect.map(p => p.map(BookMapper.mapDbToProjection))),
         Effect.tryPromise({
-          try: () => db.$count(booksTable),
+          try: () =>
+            db.$count(
+              booksTable,
+              eq(booksTable.authorUserId, opts.params.authorUserId)
+            ),
           catch: err => new DatabaseError({ message: (err as any).message })
         })
       ])
@@ -50,7 +71,7 @@ export function createListBooksLookup(db: Database): IListBooksLookup {
       const lastItem = last(items)
 
       const cursor = lastItem
-        ? encodeBase64(lastItem[opts.orderBy].toString())
+        ? encodeBase64(safeToString(lastItem[opts.orderBy]))
         : undefined
 
       return {
@@ -60,4 +81,12 @@ export function createListBooksLookup(db: Database): IListBooksLookup {
       }
     })
   }
+}
+
+function parseColumnValue(column: keyof BookProjection, value: string) {
+  return Match.value(column).pipe(
+    Match.when('dateCreated', () => new Date(value)),
+    Match.when('dateModified', () => new Date(value)),
+    Match.orElse(() => value)
+  )
 }

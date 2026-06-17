@@ -126,10 +126,11 @@ export function buildSchema<
   }
 }
 
-export function buildGetSchema<SR extends TProperties, SP extends TProperties>(
-  ok: TObject<SR>,
-  params: TObject<SP>
-) {
+export function buildGetSchema<
+  SR extends TProperties,
+  SP extends TProperties,
+  SQ extends TProperties
+>(ok: TObject<SR>, params: TObject<SP>, querystring: TObject<SQ>) {
   return {
     response: {
       200: ok,
@@ -139,7 +140,8 @@ export function buildGetSchema<SR extends TProperties, SP extends TProperties>(
       412: PreconditionFailedSchema,
       500: InternalServerErrorSchema
     },
-    params
+    params,
+    querystring
   }
 }
 

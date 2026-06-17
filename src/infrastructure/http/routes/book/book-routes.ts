@@ -4,6 +4,7 @@ import type {
   GetBookRequestType,
   IHttpServer,
   IRouteRegister,
+  ListBookRequestType,
   PublishBookRequestType,
   UpdateBookRequestType
 } from '@infrastructure/http'
@@ -15,7 +16,8 @@ export function createBookRoutes(
   updateBookRoute: IRoute,
   publishBookRoute: IRoute,
   archiveBookRoute: IRoute,
-  getBookRoute: IRoute
+  getBookRoute: IRoute,
+  listBooksRoute: IRoute
 ): IRouteRegister {
   const server = httpServer.getServer()
 
@@ -51,6 +53,12 @@ export function createBookRoutes(
             '/book/:actorUserId/:id',
             { schema: getBookRoute.schema },
             getBookRoute.handler
+          )
+
+          app.get<{ Params: ListBookRequestType }>(
+            '/book/:actorUserId',
+            { schema: listBooksRoute.schema },
+            listBooksRoute.handler
           )
         },
         { prefix: '/v1' }

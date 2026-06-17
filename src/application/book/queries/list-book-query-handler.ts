@@ -8,9 +8,16 @@ import type {
   ListBooksParams
 } from '../lookups/list-books-lookup'
 
-export interface ListBooksQuery {
+export type ListBooksQuery = {
   pageOptions: PageOptions<BookProjection, ListBooksParams>
   actorUserId: UserId
+}
+
+export function ListBookQuery(
+  pageOptions: PageOptions<BookProjection, ListBooksParams>,
+  actorUserId: UserId
+): ListBooksQuery {
+  return { pageOptions, actorUserId }
 }
 
 export type ListBooksResult = Page<BookProjection>
@@ -23,7 +30,7 @@ export class DeniedListError extends Data.TaggedError('DeniedListError')<{
   actorUserId: UserId
 }> {}
 
-type ListBooksError = DeniedListError | GeneralListError
+export type ListBooksError = DeniedListError | GeneralListError
 
 export function createListBookQueryHandler(
   listBooksLookup: IListBooksLookup,

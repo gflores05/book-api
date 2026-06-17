@@ -1,15 +1,20 @@
 import {
   ArchiveBookCommand,
   CreateBookCommand,
+  GetBookQuery,
+  ListBookQuery,
+  ListBooksParams,
   PublishBookCommand,
   UpdateBookCommand,
   type ArchiveBookResult,
   type BookProjection,
   type CreateBookResult,
   type GetBookResult,
+  type ListBooksResult,
   type PublishBookResult,
   type UpdateBookResult
 } from '@application/book'
+import { PageOptions } from '@application/util'
 import { Book, BookId, BookStatus, BookTitle } from '@domain/book'
 import { UserId } from '@domain/external'
 import { NonEmptyString } from '@domain/shared'
@@ -20,6 +25,8 @@ import type {
   CreateBookResponseType,
   GetBookRequestType,
   GetBookResponseType,
+  ListBookRequestType,
+  ListBookResponseType,
   PublishBookRequestType,
   PublishBookResponseType,
   UpdateBookRequestType,
@@ -149,10 +156,7 @@ export const BookDtoMapper = {
   },
 
   mapGetDtoToQuery(getBookDto: GetBookRequestType) {
-    return ArchiveBookCommand(
-      BookId(getBookDto.id),
-      UserId(getBookDto.actorUserId)
-    )
+    return GetBookQuery(BookId(getBookDto.id), UserId(getBookDto.actorUserId))
   },
 
   mapGetQueryResultToDto(
@@ -160,8 +164,8 @@ export const BookDtoMapper = {
   ): GetBookResponseType {
     return {
       id: getBookQueryResult.id,
-      dateCreated: getBookQueryResult.dateCreated.pipe(DateTime.formatUtc),
-      dateModified: getBookQueryResult.dateModified.pipe(DateTime.formatUtc),
+      dateCreated: getBookQueryResult.dateCreated.pipe(DateTime.formatIso),
+      dateModified: getBookQueryResult.dateModified.pipe(DateTime.formatIso),
       title: getBookQueryResult.title,
       description:
         getBookQueryResult.description.pipe(Option.getOrUndefined) || '',
@@ -172,6 +176,40 @@ export const BookDtoMapper = {
         Match.orElse(() => 'Unknown')
       ),
       authorUserId: getBookQueryResult.authorUserId
+    }
+  },
+
+  mapListDtoToQuery(listBookDto: ListBookRequestType) {
+    return ListBookQuery(
+      PageOptions(
+        listBookDto.size,
+        listBookDto.orderBy as keyof BookProjection,
+        listBookDto.orderDirection as 'asc' | 'desc',
+        ListBooksParams(UserId(listBookDto.authorUserId)),
+        listBookDto.cursor
+      ),
+      UserId(listBookDto.actorUserId)
+    )
+  },
+
+  mapListQueryResultToDto(result: ListBooksResult): ListBookResponseType {
+    return {
+      total: result.total,
+      cursor: result.cursor || '',
+      items: result.items.map(item => ({
+        id: item.id,
+        dateCreated: item.dateCreated.pipe(DateTime.formatIso),
+        dateModified: item.dateCreated.pipe(DateTime.formatIso),
+        title: item.title,
+        description: item.description.pipe(Option.getOrUndefined) || '',
+        status: Match.value(item.status).pipe(
+          Match.when(BookStatus.Draft, _ => 'Draft'),
+          Match.when(BookStatus.Published, _ => 'Published'),
+          Match.when(BookStatus.Archived, _ => 'Archived'),
+          Match.orElse(() => 'Unknown')
+        ),
+        authorUserId: item.authorUserId
+      }))
     }
   }
 }
