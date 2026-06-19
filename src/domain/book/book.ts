@@ -106,7 +106,7 @@ export class Book extends AggregateRoot<BookId, BookFact> {
   publish(): Effect.Effect<void, BookError> {
     return Effect.gen(this, function* (this) {
       if (this.status !== BookStatus.Draft) {
-        yield* new BookNotInDraftError({ id: this.id })
+        return yield* new BookNotInDraftError({ id: this.id })
       }
 
       this.record({
@@ -119,7 +119,7 @@ export class Book extends AggregateRoot<BookId, BookFact> {
   archive(): Effect.Effect<void, BookError> {
     return Effect.gen(this, function* (this) {
       if (this.status === BookStatus.Archived) {
-        yield* new BookAlreadyArchivedError({ id: this.id })
+        return yield* new BookAlreadyArchivedError({ id: this.id })
       }
 
       this.record({
